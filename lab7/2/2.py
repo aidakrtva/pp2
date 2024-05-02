@@ -17,7 +17,7 @@ while gameon:
 
     screen.fill((255, 255, 255))
     f = pygame.font.Font(None, 20)
-    text1 = f.render('PAUSEE - Space', True, (0, 0, 0))
+    text1 = f.render('PAUSEE - p, UNpause - u', True, (0, 0, 0))
     screen.blit(text1, (10, 30))
 
     text2 = f.render('Next - arrow to right', True, (0, 0, 0))

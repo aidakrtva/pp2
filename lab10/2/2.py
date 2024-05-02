@@ -13,19 +13,13 @@ conn = psycopg2.connect(
 
 cur = conn.cursor()
 
-cur.execute("""CREATE TABLE user_score (
-            name VARCHAR(255),
-            score VARCHAR(200)
-); 
-""")
-conn.commit()
-
-cur.execute("""INSERT INTO user_score (name) VALUES
-            (print("Enter your name: 'input(str())')");
-""")
-
-conn.commit()
-
+# cur.execute("""CREATE TABLE user_score (
+#             name VARCHAR(255),
+#             score VARCHAR(200)
+# ); 
+# """)
+# conn.commit()
+name = input('input ur name: ')
 pygame.init()  # Initialize Pygame
 
 # Define constants for the game window size and cell size
@@ -155,10 +149,15 @@ while not done:  # Continue loop until done is True
 
     if snake.move() == False:  # If snake movement returns False (game over condition)
         done = True  # Set done to True to exit the loop
-        
         screen.fill(colorRED)  # Fill the screen with red
         screen.blit(game__over, (125, 225))  # Display game over message
-        
+        cur.execute("""INSERT INTO user_score (name, score)
+                VALUES (%s, %s);""",(name, score))
+        conn.commit()
+        cur.close()
+        conn.close()
+
+
         pygame.display.update()  # Update the display
         time.sleep(2)  # Pause for 2 seconds before exiting
 
