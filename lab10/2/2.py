@@ -6,21 +6,39 @@ import psycopg2
 
 conn = psycopg2.connect(
     host = 'localhost', 
-    dbname = 'user', 
+    dbname = 'snake_playersaida', 
     user = 'postgres', 
     password = '808'
     )
 
 cur = conn.cursor()
 
-# cur.execute("""CREATE TABLE user_score (
-#             name VARCHAR(255),
-#             score VARCHAR(200)
-# ); 
-# """)
-# conn.commit()
-name = input('input ur name: ')
-pygame.init()  # Initialize Pygame
+cur.execute("""CREATE TABLE IF NOT EXISTS user_score (
+            name VARCHAR(255),
+            score VARCHAR(200),
+            alive BOOLEAN,
+            length INTEGER
+); 
+""")
+conn.commit()
+
+def pause(lenggg):
+    global cur
+    paused = True
+    while paused:
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:  # Resume on pressing ESC key again
+                    paused = False
+                    break
+                elif event.key == pygame.K_RETURN:  # Save state and score to DB on pressing Enter                    
+                    cur.execute("""INSERT INTO user_score (name, score, alive,length)
+                            VALUES (%s, %s, TRUE,%s);""",(name, score,lenggg))
+                    conn.commit()
+                    cur.close()
+                    conn.close()
+
+        pygame.time.delay(100)  
 
 # Define constants for the game window size and cell size
 WIDTH = 600
@@ -31,6 +49,22 @@ CELL = 30
 level = 1
 score = 0
 snake_speed = 5
+
+name = input('input ur name: ')
+
+length = 3
+cur.execute("""SELECT score,length FROM user_score WHERE alive and name =%s""",(name, ))
+conn.commit()
+fethed = cur.fetchone()
+if fethed:
+    length = int(fethed[1])
+    score = int(fethed[0])
+    print(f'{name}, your score is {score}')
+
+
+
+pygame.init()  # Initialize Pygame
+
 
 # Function to draw the grid lines
 def draw_grid():
@@ -84,9 +118,12 @@ class Snake:
             pygame.draw.rect(screen, colorYELLOW, (segment.x * CELL, segment.y * CELL, CELL, CELL))  # Draw each segment
 
     def check_collision(self, food):  # Method to check collision with food
+        global length
         head = self.body[0]  # Get the head of the snake
-        if head.x == food.pos.x and head.y == food.pos.y:  # If snake head overlaps with food
-            print("Got food!")  # Print message indicating food is eaten
+        if (head.x == food.pos.x and head.y == food.pos.y) and length > len(self.body):  # If snake head overlaps with food and is still spawning
+            length+=1
+        if (head.x == food.pos.x and head.y == food.pos.y) or length > len(self.body):  # If snake head overlaps with food or is spawning
+            print("Grow up!")  # Print message indicating growing
             self.body.append(Point(head.x, head.y))  # Add a new segment to the snake's body
             pygame.display.update()  # Update the display
             food.change_pos()  # Change the position of the food
@@ -128,6 +165,8 @@ while not done:  # Continue loop until done is True
         if event.type == pygame.QUIT:  # If user closes the window
             done = True  # Set done to True to exit the loop
         if event.type == pygame.KEYDOWN:  # If a key is pressed
+            if event.key == pygame.K_p:
+                pause(len(snake.body))
             if event.key == pygame.K_RIGHT and snake.dx != -1:  # Right arrow key
                 snake.dx = 1  # Set direction to move right
                 snake.dy = 0
@@ -151,8 +190,9 @@ while not done:  # Continue loop until done is True
         done = True  # Set done to True to exit the loop
         screen.fill(colorRED)  # Fill the screen with red
         screen.blit(game__over, (125, 225))  # Display game over message
-        cur.execute("""INSERT INTO user_score (name, score)
-                VALUES (%s, %s);""",(name, score))
+        
+        cur.execute("""INSERT INTO user_score (name, score, alive, length)
+                VALUES (%s, %s, FALSE, 0);""",(name, score))
         conn.commit()
         cur.close()
         conn.close()
